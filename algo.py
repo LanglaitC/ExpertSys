@@ -1,4 +1,5 @@
 import re
+import sys
 
 COMMENT_CHAR = '#'
 FACT_CHAR = '='
@@ -9,18 +10,19 @@ class Algo:
     def __init__(self, input_file, forward, verbose):
         self.forward = forward
         self.verbose = verbose
-        self.parse(input_file)
         self.facts = {}
         self.queries = []
+        self.parse(input_file)
         return
 
     def parse(self, input_file):
         self.kb ={}
         with open(input_file, 'r') as fd:
-            content = fd.read.split('\n')
+            content = fd.read().split('\n')
         try:
             self.parse_clauses(content)
         except Exception as e:
+            raise(e)
             sys.stderr.write('Parsing error \n')
             exit
 
@@ -29,17 +31,17 @@ class Algo:
         jump = None
         for index, line in enumerate(content):
             line = line.strip()
-            if (line == '' and jump == None) or line[0] == COMMENT_CHAR:
+            if (line == '' and jump == None) or (line != '' and line[0] == COMMENT_CHAR):
                 continue
-            if (line == '' and jump = True)
+            if (line == '' and jump == True):
                 return self.parse_facts(content)
             elif line[0] == FACT_CHAR:
                 return parse_facts(content[index:])
             else:
                 #TODO Deal with equivalence <=>
                 jump = True
-                splited = re.compile('<?=>').match(line)
-                if (splited.length !== 2):
+                splited = re.compile('<?=>').split(line)
+                if (len(splited) != 2):
                     Exception()
                 self.parse_rules(splited[1].split(COMMENT_CHAR)[0])
         Exception()
@@ -48,15 +50,15 @@ class Algo:
         jump = None
         for index, line in enumerate(content):
             line = line.strip()
-            if (line == '' and jump == None) or line[0] == COMMENT_CHAR:
+            if (line == '' and jump == None) or (line != '' and line[0] == COMMENT_CHAR):
                 continue
             elif line[0] == FACT_CHAR:
                 for char in line[1:]:
-                    if char == COMMENT_CHAR:
+                    if char == COMMENT_CHAR or char == ' ':
                         break
                     self.facts[char] = True
-                return parse_queries(content[index + 1:])
-            else
+                return self.parse_queries(content[index + 1:])
+            else:
                 Exception()
         Exception()
 
@@ -69,13 +71,13 @@ class Algo:
                 continue
             elif line[0] == QUERY_CHAR:
                 for char in line[1:]:
-                    if char == COMMENT_CHAR:
+                    if char == COMMENT_CHAR or char == ' ':
                         break
                     self.queries.append(char)
                 query = True
-            else
+            else:
                 Exception()
-        if not query
+        if not query:
             Exception()
 
     def parse_rules(self, line):
