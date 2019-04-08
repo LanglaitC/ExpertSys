@@ -3,7 +3,7 @@
 # shown here. spacing is not important
 
 
-C           => E 		# C implies E
+( C | F ) + ( D | E )          => E 		# C implies E
 A + B + C   => D 		# A and B and C implies D
 A | B       => C 		# A or B implies C
 A + !B      => F 		# A and not B implies F

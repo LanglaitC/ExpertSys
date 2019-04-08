@@ -98,9 +98,16 @@ class Algo:
         tmp = []
         not_op = False
         operator = None
-        for char in term:
+        i = 0
+        while i < len(term):
+            char = term[i]
+            i += 1
             if char.isspace():
                 continue
+            elif char == '(':
+                opened = i - 1
+                i = term.rindex(')') + 1
+                tmp.append(self.parse_rules(term[opened + 1:i - 2]))
             elif char in OPERATORS:
                 if char == operator:
                     continue
