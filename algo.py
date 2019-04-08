@@ -1,10 +1,22 @@
 import re
 import sys
+from operators import *
 
 COMMENT_CHAR = '#'
 FACT_CHAR = '='
 QUERY_CHAR = '?'
-OPERATORS = ['(', '']
+NOT_OPERATOR = '!'
+OR_OPERATOR = '|'
+AND_OPERATOR = '+'
+XOR_OPERATOR = '^'
+OPERATORS = [NOT_OPERATOR, AND_OPERATOR, OR_OPERATOR, XOR_OPERATOR]
+OPERATORS_FUNC = {
+    NOT_OPERATOR: Not,
+    AND_OPERATOR: And,
+    OR_OPERATOR: Or,
+    XOR_OPERATOR: Xor
+}
+POSSIBLE_FACTS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class Algo:
     def __init__(self, input_file, forward, verbose):
@@ -25,6 +37,7 @@ class Algo:
             raise(e)
             sys.stderr.write('Parsing error \n')
             exit
+        print(len(self.kb))
 
             
     def parse_clauses(self, content):
@@ -43,7 +56,7 @@ class Algo:
                 splited = re.compile('<?=>').split(line)
                 if (len(splited) != 2):
                     Exception()
-                self.parse_rules(splited[1].split(COMMENT_CHAR)[0])
+                self.kb[self.parse_rules(splited[1].split(COMMENT_CHAR)[0])] = self.parse_rules(splited[0].split(COMMENT_CHAR)[0])
         Exception()
 
     def parse_facts(self, content):
@@ -80,5 +93,35 @@ class Algo:
         if not query:
             Exception()
 
-    def parse_rules(self, line):
-        return ""
+    def parse_rules(self, term):
+        result = None
+        tmp = []
+        not_op = False
+        operator = None
+        for char in term:
+            if char.isspace():
+                continue
+            elif char in OPERATORS:
+                if char == operator:
+                    continue
+                elif char == NOT_OPERATOR:
+                    not_op = True
+                elif operator == None:
+                    operator = char
+                else:
+                    result = OPERATORS_FUNC[operator](self.facts, tmp)
+                    tmp = []
+                    tmp.append(result)
+                    operator = char
+            elif char in POSSIBLE_FACTS:
+                tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, Fact(self.facts, char)) if not_op else Fact(self.facts, char))
+            else:
+                Exception()
+        if operator is None:
+            if len(tmp):
+                result = tmp[0]
+            else:
+                Exception()
+        else:
+            result = OPERATORS_FUNC[operator](self.facts, tmp)
+        return result
