@@ -22,9 +22,11 @@ class Algo:
     def __init__(self, input_file, forward, verbose):
         self.forward = forward
         self.verbose = verbose
-        self.facts = {}
+        self.facts = []
         self.queries = []
         self.parse(input_file)
+        for query in self.queries:
+            self.solve(query)
         return
 
     def parse(self, input_file):
@@ -76,7 +78,14 @@ class Algo:
                 for char in line[1:]:
                     if char == COMMENT_CHAR or char == ' ':
                         break
-                    self.facts[Fact(self.facts, char)] = True
+                    fact = Fact(self.facts, char, True)
+                    if fact in self.facts:
+                        sub_index = self.facts.index(fact)
+                        self.facts[sub_index].checked = True
+                        self.facts[sub_index].status = True
+                    else:
+                        fact.checked = True
+                        self.facts.append(fact)
                 return self.parse_queries(content[index + 1:])
             else:
                 raise Exception()
@@ -93,7 +102,12 @@ class Algo:
                 for char in line[1:]:
                     if char == COMMENT_CHAR or char == ' ':
                         break
-                    self.queries.append(Fact(self.facts, char))
+                    fact = Fact(self.facts, char, False)
+                    if fact in self.facts:
+                        self.queries.append(self.facts[self.facts.index(fact)])
+                    else:
+                        self.facts.append(fact)
+                        self.queries.append(fact)
                 query = True
             else:
                 raise Exception()
@@ -138,7 +152,12 @@ class Algo:
                     tmp.append(result)
                     operator = char
             elif char in POSSIBLE_FACTS:
-                tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, Fact(self.facts, char)) if not_op else Fact(self.facts, char))
+                fact = Fact(self.facts, char, False)
+                if fact in self.facts:
+                    fact = self.facts[self.facts.index(fact)]
+                else:
+                    self.facts.append(fact)
+                tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, fact) if not_op else fact)
                 not_op = False
             else:
                 raise Exception()
@@ -151,3 +170,6 @@ class Algo:
         else:
             result = OPERATORS_FUNC[operator](self.facts, tmp)
         return result
+
+    def solve(self, fact):
+        fact.solve(self.kb)
