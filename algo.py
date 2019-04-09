@@ -173,3 +173,7 @@ class Algo:
 
     def solve(self, fact):
         fact.solve(self.kb)
+        if (fact.undetermined):
+            print(fact.element + " is Undetermined")
+        else:
+            print(fact.element + " is " + str(fact.status))

@@ -91,15 +91,18 @@ class Fact(Node):
         if self.checked:
             return self.status
         else:
+            results = []
             for key, value in kb.items():
-                results = []
                 if key == self:
                     for rule in value:
                         status = rule.solve(kb)
-                        results.append(status)
+                        if status != False:
+                            results.append(status)
                 elif (type(key) != type(self) and self in key.get_facts()):
                     for rule in value:
-                        results.append(rule.set_status(rule.solve(kb)))
+                        status = rule.solve(kb)
+                        if status != False:
+                            results.append(key.set_status(status))
         if (len(results)):
             if True in results and False in results:
                 raise Exception("Incoherence")
@@ -113,5 +116,8 @@ class Fact(Node):
 
     def get_facts(self):
         val = []
-        val.append(self.element)
+        val.append(self)
         return val
+
+    def set_status(self, result):
+        return result
