@@ -47,9 +47,9 @@ class Algo:
             if (line == '' and jump == None) or (line != '' and line[0] == COMMENT_CHAR):
                 continue
             if (line == '' and jump == True):
-                return self.parse_facts(content)
+                return self.parse_facts(content[index:])
             elif line[0] == FACT_CHAR:
-                return parse_facts(content[index:])
+                return self.parse_facts(content[index:])
             else:
                 #TODO Deal with equivalence <=>
                 jump = True
@@ -76,7 +76,7 @@ class Algo:
                 for char in line[1:]:
                     if char == COMMENT_CHAR or char == ' ':
                         break
-                    self.facts[char] = True
+                    self.facts[Fact(self.facts, char)] = True
                 return self.parse_queries(content[index + 1:])
             else:
                 raise Exception()
@@ -93,7 +93,7 @@ class Algo:
                 for char in line[1:]:
                     if char == COMMENT_CHAR or char == ' ':
                         break
-                    self.queries.append(char)
+                    self.queries.append(Fact(self.facts, char))
                 query = True
             else:
                 raise Exception()
