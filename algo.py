@@ -19,12 +19,14 @@ OPERATORS_FUNC = {
 POSSIBLE_FACTS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class Algo:
-    def __init__(self, input_file, forward, verbose):
+    def __init__(self, input_file, forward, verbose, fast):
         self.forward = forward
         self.verbose = verbose
         self.facts = []
         self.queries = []
         self.parse(input_file)
+        if not fast:
+            self.check_incoherences()
         for query in self.queries:
             self.solve(query)
         return
@@ -170,6 +172,10 @@ class Algo:
         else:
             result = OPERATORS_FUNC[operator](self.facts, tmp)
         return result
+
+    def check_incoherences(self):
+        for fact in self.facts:
+            fact.solve(self.kb)
 
     def solve(self, fact):
         fact.solve(self.kb)
