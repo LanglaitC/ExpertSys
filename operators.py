@@ -58,6 +58,14 @@ class Fact(Node):
         Node.__init__(self, facts)
         self.element = element
 
+    def __hash__(self):
+        return hash(self.element)
+
+    def __eq__(self, other):
+        if isinstance(other, Fact):
+            return self.element == other.element
+        return False
+
     def solve(self):
         return self.facts[element]
 

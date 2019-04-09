@@ -3,8 +3,8 @@
 # shown here. spacing is not important
 
 
-( C | ( B ^ (F + A ) )          => E 		# C implies E
-A + B + C   => D 		# A and B and C implies D
+( C | ( B ^ (F + A ) )  )        => E 		# C implies E
+A + B + C   => E 		# A and B and C implies D
 !(A|B) + ( C | P )       => C 		# A or B implies C
 A + !B      => F 		# A and not B implies F
 C | !G      => H 		# C or not G implies H

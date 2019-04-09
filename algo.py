@@ -56,7 +56,14 @@ class Algo:
                 splited = re.compile('<?=>').split(line)
                 if (len(splited) != 2):
                     raise Exception()
-                self.kb[self.parse_rules(splited[1].split(COMMENT_CHAR)[0])] = self.parse_rules(splited[0].split(COMMENT_CHAR)[0])
+                key = self.parse_rules(splited[1].split(COMMENT_CHAR)[0])
+                val = self.parse_rules(splited[0].split(COMMENT_CHAR)[0])
+                if key in self.kb:
+                    self.kb[key].append(val)
+                else:
+                    values = []
+                    values.append(val)
+                    self.kb[key] = values
         raise Exception()
 
     def parse_facts(self, content):
