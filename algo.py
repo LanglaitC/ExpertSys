@@ -55,9 +55,9 @@ class Algo:
                 jump = True
                 splited = re.compile('<?=>').split(line)
                 if (len(splited) != 2):
-                    Exception()
+                    raise Exception()
                 self.kb[self.parse_rules(splited[1].split(COMMENT_CHAR)[0])] = self.parse_rules(splited[0].split(COMMENT_CHAR)[0])
-        Exception()
+        raise Exception()
 
     def parse_facts(self, content):
         jump = None
@@ -72,8 +72,8 @@ class Algo:
                     self.facts[char] = True
                 return self.parse_queries(content[index + 1:])
             else:
-                Exception()
-        Exception()
+                raise Exception()
+        raise Exception()
 
     def parse_queries(self, content):
         jump = None
@@ -89,9 +89,9 @@ class Algo:
                     self.queries.append(char)
                 query = True
             else:
-                Exception()
+                raise Exception()
         if not query:
-            Exception()
+            raise Exception()
 
     def parse_rules(self, term):
         result = None
@@ -101,16 +101,26 @@ class Algo:
         i = 0
         while i < len(term):
             char = term[i]
-            i += 1
             if char.isspace():
-                continue
+                pass
             elif char == '(':
-                opened = i - 1
-                i = term.rindex(')') + 1
-                tmp.append(self.parse_rules(term[opened + 1:i - 2]))
+                opened = i
+                count = 0
+                while i < len(term):
+                    if term[i] == '(':
+                        count += 1
+                    if term[i] ==')':
+                        count -= 1
+                        if count == 0:
+                            tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[opened + 1:i])) if not_op else self.parse_rules(term[opened + 1:i]))
+                            not_op = False
+                            break
+                    i+= 1
+                if count != 0:
+                    raise Exception()
             elif char in OPERATORS:
                 if char == operator:
-                    continue
+                    pass
                 elif char == NOT_OPERATOR:
                     not_op = True
                 elif operator == None:
@@ -122,13 +132,15 @@ class Algo:
                     operator = char
             elif char in POSSIBLE_FACTS:
                 tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, Fact(self.facts, char)) if not_op else Fact(self.facts, char))
+                not_op = False
             else:
-                Exception()
+                raise Exception()
+            i += 1
         if operator is None:
             if len(tmp):
                 result = tmp[0]
             else:
-                Exception()
+                raise Exception()
         else:
             result = OPERATORS_FUNC[operator](self.facts, tmp)
         return result
