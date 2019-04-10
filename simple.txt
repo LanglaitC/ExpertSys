@@ -3,7 +3,7 @@
 # shown here. spacing is not important
 
 
-!(!A + B) => C + B
+A ^ B | C + D => C
 
 
 =AB

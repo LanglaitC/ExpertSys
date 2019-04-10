@@ -133,6 +133,7 @@ class Algo:
         tmp = []
         not_op = False
         operator = None
+        priority = False
         i = 0
         while i < len(term):
             char = term[i]
@@ -161,10 +162,19 @@ class Algo:
                 elif operator == None:
                     operator = char
                 else:
-                    result = OPERATORS_FUNC[operator](self.facts, tmp)
-                    tmp = []
-                    tmp.append(result)
-                    operator = char
+                    if priority == False:
+                        result = OPERATORS_FUNC[operator](self.facts, tmp)
+                        tmp = []
+                        tmp.append(result)
+                        priority = OPERATORS.index(char) < OPERATORS.index(operator) and not_op == False 
+                        operator = char
+                    else:
+                        node = tmp[0].elements[-1]
+                        tab = list(tmp)
+                        tab[0] = node
+                        tmp[0].elements[-1] = OPERATORS_FUNC[operator](self.facts, tab)
+                        tmp.pop()
+                        operator = char
             elif char in POSSIBLE_FACTS:
                 fact = Fact(self.facts, char, False)
                 if fact in self.facts:
@@ -182,7 +192,17 @@ class Algo:
             else:
                 raise Exception()
         else:
-            result = OPERATORS_FUNC[operator](self.facts, tmp)
+            if priority == False:
+                result = OPERATORS_FUNC[operator](self.facts, tmp)
+            else:
+                elem = tmp[0].elements[-1]
+                while elem.__class__.__name__ != 'Fact':
+                    elem = elem.elements[-1]
+                node = elem
+                # node = tmp[0].elements[-1]
+                tab = list(tmp)
+                tab[0] = node
+                elem = OPERATORS_FUNC[operator](self.facts, tab)
         return result
 
     def check_incoherences(self):
