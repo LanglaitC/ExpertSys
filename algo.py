@@ -77,9 +77,15 @@ class Algo:
             if (line == '' and jump == None) or (line != '' and line[0] == COMMENT_CHAR):
                 continue
             elif line[0] == FACT_CHAR:
+                space = False
                 for char in line[1:]:
-                    if char == COMMENT_CHAR or char == ' ':
+                    if char == COMMENT_CHAR:
                         break
+                    if char == ' ':
+                        space = True
+                        continue
+                    if char != COMMENT_CHAR and space == True and char != ' ':
+                        raise Exception()
                     fact = Fact(self.facts, char, True)
                     if fact in self.facts:
                         sub_index = self.facts.index(fact)
@@ -101,9 +107,15 @@ class Algo:
             if line == '' or line[0] == COMMENT_CHAR:
                 continue
             elif line[0] == QUERY_CHAR:
+                space = False
                 for char in line[1:]:
-                    if char == COMMENT_CHAR or char == ' ':
+                    if char == COMMENT_CHAR:
                         break
+                    if char == ' ':
+                        space = True
+                        continue
+                    if char != COMMENT_CHAR and space == True and char != ' ':
+                        raise Exception()
                     fact = Fact(self.facts, char, False)
                     if fact in self.facts:
                         self.queries.append(self.facts[self.facts.index(fact)])
