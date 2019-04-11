@@ -12,6 +12,7 @@ class And(Node):
     def __init__(self, facts, elements):
         Node.__init__(self, facts)
         self.elements = elements
+        self.operator = "+"
 
     def solve(self, kb):
         for element in self.elements:
@@ -26,6 +27,7 @@ class Or(Node):
     def __init__(self, facts, elements):
         Node.__init__(self, facts)
         self.elements = elements
+        self.operator = "|"
 
     def solve(self, kb):
         for element in self.elements:
@@ -40,6 +42,7 @@ class Xor(Node):
     def __init__(self, facts, elements):
         Node.__init__(self, facts)
         self.elements = elements
+        self.operator = "^"
 
     def solve(self, kb):
         result = False
@@ -58,6 +61,7 @@ class Not(Node):
     def __init__(self, facts, element):
         Node.__init__(self, facts)
         self.element = element
+        self.operator = "!"
 
     def solve(self, kb):
         return not self.element.solve(kb)

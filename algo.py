@@ -155,6 +155,13 @@ class Algo:
                 if count != 0:
                     raise Exception()
             elif char in OPERATORS:
+                j = i + 1
+                parentheses = 0
+                while (j < len(term) and term[j] not in OPERATORS) or (j < len(term) and parentheses != 0):
+                    if (term[j] in "()"):
+                        parentheses += 1 if term[j] == "(" else -1
+                    j += 1
+                priority = j < len(term) and term[j] in OPERATORS and OPERATORS.index(term[j]) < OPERATORS.index(char)
                 if char == operator:
                     pass
                 elif char == NOT_OPERATOR:
@@ -162,28 +169,32 @@ class Algo:
                 elif operator == None:
                     operator = char
                 else:
-                    if priority == False:
-                        result = OPERATORS_FUNC[operator](self.facts, tmp)
-                        tmp = []
-                        tmp.append(result)
-                        priority = OPERATORS.index(char) < OPERATORS.index(operator) and not_op == False 
-                    else:
-                        parent = result
-                        elem = result.elements[-1]
-                        while elem.__class__.__name__ != 'Fact':
-                            parent = elem
-                            elem = elem.elements[-1]
-                        parent.elements[-1] = OPERATORS_FUNC[operator](self.facts, tmp)
-                        tmp = []
+                    result = OPERATORS_FUNC[operator](self.facts, tmp)
+                    tmp = []
+                    tmp.append(result)
                     operator = char
             elif char in POSSIBLE_FACTS:
-                fact = Fact(self.facts, char, False)
-                if fact in self.facts:
-                    fact = self.facts[self.facts.index(fact)]
+                if priority == True:
+                    start = i
+                    parentheses = 0
+                    while i < len(term):
+                        if (term[i] in "()"):
+                            parentheses += 1 if term[i] == "(" else -1
+                        if term[i] in OPERATORS and OPERATORS.index(term[i]) >= OPERATORS.index(operator) and parentheses == 0:
+                            break
+                        i += 1
+                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[start:i])) if not_op else self.parse_rules(term[start:i]))
+                    not_op = False
+                    i -= 1
+                    priority = False
                 else:
-                    self.facts.append(fact)
-                tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, fact) if not_op else fact)
-                not_op = False
+                    fact = Fact(self.facts, char, False)
+                    if fact in self.facts:
+                        fact = self.facts[self.facts.index(fact)]
+                    else:
+                        self.facts.append(fact)
+                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, fact) if not_op else fact)
+                    not_op = False
             else:
                 raise Exception()
             i += 1
@@ -193,19 +204,10 @@ class Algo:
             else:
                 raise Exception()
         else:
-            if priority == False:
-                result = OPERATORS_FUNC[operator](self.facts, tmp)
+            if result and OPERATORS.index(operator) < OPERATORS.index(result.operator):
+                result.elements[-1] = (OPERATORS_FUNC[operator](self.facts, [result.elements[-1]] + tmp[1:]))
             else:
-                parent = result
-                elem = result.elements[-1]
-                while elem.__class__.__name__ != 'Fact':
-                    parent = elem
-                    elem = elem.elements[-1]
-                node = elem
-                # node = tmp[0].elements[-1]
-                tab = list(tmp)
-                tab[0] = node
-                parent.elements[-1] = OPERATORS_FUNC[operator](self.facts, tab)
+                result = OPERATORS_FUNC[operator](self.facts, tmp)
         return result
 
     def check_incoherences(self):
@@ -218,3 +220,11 @@ class Algo:
             print(fact.element + " is Undetermined")
         else:
             print(fact.element + " is " + str(fact.status))
+
+    def find_end_of_term(self, term, start, operator):
+        i = start
+        while i < len(term):
+            if term[i] in OPERATORS and OPERATORS.index(term[i]) >= OPERATORS.index(operator):
+                break
+            i += 1
+        return i
