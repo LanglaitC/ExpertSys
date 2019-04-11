@@ -1,9 +1,5 @@
-# this is a comment
-# all the required rules and symbols, along with the bonus ones, will be
-# shown here. spacing is not important
-
-A + B ^ D | B => E
-E <=> C
+A => !B + C
 
 =AB
-?C
+
+?ABC

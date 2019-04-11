@@ -1,15 +1,7 @@
 import re
 import sys
+import math
 from operators import *
-
-HEADER = '\033[95m'
-OKBLUE = '\033[94m'
-OKGREEN = '\033[92m'
-WARNING = '\033[93m'
-FAIL = '\033[91m'
-ENDC = '\033[0m'
-BOLD = '\033[1m'
-UNDERLINE = '\033[4m'
 
 COMMENT_CHAR = '#'
 FACT_CHAR = '='
@@ -29,30 +21,39 @@ POSSIBLE_FACTS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class Algo:
     def __init__(self, input_file, forward, verbose, fast, facts, query):
-        self.forward = forward
-        self.verbose = verbose
-        self.fact_asked = facts
-        self.query_asked = query
-        self.facts = []
-        self.queries = []
-        self.parse(input_file)
-        if self.fact_asked != None:
-            try:
+        try:
+            self.forward = forward
+            self.verbose = verbose
+            self.fast = fast
+            self.fact_asked = facts
+            self.query_asked = query
+            self.facts = []
+            self.queries = []
+            self.parse(input_file)
+            if self.fact_asked != None:
                 self.check_line_validity(self.fact_asked)
                 self.parse_facts_line(self.fact_asked)
-            except Exception as e:
-                raise(e)
-        if self.query_asked != None:
-            try:
+            if self.query_asked != None:
                 self.check_line_validity(self.query_asked)
                 self.parse_queries_line(self.query_asked)
-            except Exception as e:
-                raise(e)
-        if not fast:
-            self.check_incoherences()
-        for query in self.queries:
-            self.solve(query)
-        return
+            if not fast:
+                self.check_incoherences()
+            for query in self.queries:
+                self.solve(query)
+        except Exception as e:
+            length = len(e.__str__())
+            sys.stderr.write(Colors.FAIL + "\n")
+            for i in range(math.ceil(length / 2) - 18):
+                sys.stderr.write('-')
+            sys.stderr.write(" /!\\ WARNING: MISTAKES HAS BEEN MADE /!\\ ")
+            sys.stderr.write(Colors.FAIL)
+            for i in range(math.ceil(length / 2) - 18):
+                sys.stderr.write('-')
+            sys.stderr.write('\n')
+            sys.stderr.write("\n  " + Colors.ENDC + e.__str__() + Colors.FAIL + "\n\n")
+            for i in range(length + 5):
+                sys.stderr.write('-')
+            sys.stderr.write("\n" + Colors.ENDC)
 
     def parse(self, input_file):
         self.kb ={}
@@ -122,21 +123,25 @@ class Algo:
             if char != COMMENT_CHAR and space == True and char != ' ':
                 raise Exception()
             if fact and char not in POSSIBLE_FACTS:
-                raise Exception(char + " is not a valid fact, fact should be an alphabetical uppercase character")
+                raise Exception(char + " n'est pas un charactere valide, les fais devraient etre des lettres de l'alphabet majuscules")
 
     def parse_facts_line(self, line):
         for char in line:
+            if char not in POSSIBLE_FACTS:
+                break
             fact = Fact(self.facts, char, True, self.verbose, self.kb)
             if fact in self.facts:
                 sub_index = self.facts.index(fact)
-                self.facts[sub_index].checked = True
+                self.facts[sub_index].checked = self.fast
                 self.facts[sub_index].status = True
             else:
-                fact.checked = True
+                fact.checked = self.fast
                 self.facts.append(fact)
 
     def parse_queries_line(self, line):
         for char in line:
+            if char not in POSSIBLE_FACTS:
+                break
             fact = Fact(self.facts, char, False, self.verbose, self.kb)
             if fact in self.facts:
                 self.queries.append(self.facts[self.facts.index(fact)])
@@ -157,9 +162,9 @@ class Algo:
                     self.parse_queries_line(line[1:])
                     query = True
             else:
-                raise Exception()
+                raise Exception("Charactère(s) invalide au niveau des queries: " + line)
         if not query and self.query_asked == False:
-            raise Exception()
+            raise Exception("Aucune querie valide n'a été saisie")
 
     def parse_rules(self, term):
         result = None
@@ -167,6 +172,8 @@ class Algo:
         not_op = False
         operator = None
         priority = False
+        last_op = 0
+        last_fact = 0
         i = 0
         while i < len(term):
             char = term[i]
@@ -186,8 +193,9 @@ class Algo:
                             break
                     i+= 1
                 if count != 0:
-                    raise Exception()
+                    raise Exception("Incoherence au niveau des parentheses d'une regle: " + term)
             elif char in OPERATORS:
+                last_op = i
                 j = i + 1
                 parentheses = 0
                 while (j < len(term) and term[j] not in OPERATORS) or (j < len(term) and parentheses != 0):
@@ -207,6 +215,7 @@ class Algo:
                     tmp.append(result)
                     operator = char
             elif char in POSSIBLE_FACTS:
+                last_fact = i
                 if priority == True:
                     start = i
                     parentheses = 0
@@ -229,8 +238,10 @@ class Algo:
                     tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, fact, self.verbose, self.kb) if not_op else fact)
                     not_op = False
             else:
-                raise Exception()
+                raise Exception("Charactère invalide au sein de l'une des regles: " + char + ", " + term)
             i += 1
+        if last_op > last_fact:
+            raise Exception("Un opérateur doit etre suivi d'un fait valide ou de parentheses contenant un autre operateur valide")
         if operator is None:
             if len(tmp):
                 result = tmp[0]
@@ -245,14 +256,15 @@ class Algo:
 
     def check_incoherences(self):
         for fact in self.facts:
-            fact.solve()
+            fact.solve(fact in self.queries)
 
     def solve(self, fact):
-        fact.solve()
-        if (fact.undetermined):
-            print(fact.element + " is Undetermined")
-        else:
-            print((OKGREEN if fact.status == True else FAIL) + fact.element + " is " + str(fact.status) + ENDC)
+        fact.solve(self.fast)
+        if (not self.verbose):
+            if (fact.undetermined):
+                print(fact.element + " is Undetermined")
+            else:
+                print((Colors.OKGREEN if fact.status == True else Colors.FAIL) + fact.element + " is " + str(fact.status) + Colors.ENDC)
 
     def find_end_of_term(self, term, start, operator):
         i = start
