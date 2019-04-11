@@ -2,10 +2,8 @@
 # all the required rules and symbols, along with the bonus ones, will be
 # shown here. spacing is not important
 
-
-(A ^ B) | C + (B + F ^ B) + !A => C
-
+A + B ^ D | B => E
+E <=> C
 
 =AB
-
 ?C

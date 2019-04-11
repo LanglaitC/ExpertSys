@@ -2,6 +2,15 @@ import re
 import sys
 from operators import *
 
+HEADER = '\033[95m'
+OKBLUE = '\033[94m'
+OKGREEN = '\033[92m'
+WARNING = '\033[93m'
+FAIL = '\033[91m'
+ENDC = '\033[0m'
+BOLD = '\033[1m'
+UNDERLINE = '\033[4m'
+
 COMMENT_CHAR = '#'
 FACT_CHAR = '='
 QUERY_CHAR = '?'
@@ -19,12 +28,26 @@ OPERATORS_FUNC = {
 POSSIBLE_FACTS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class Algo:
-    def __init__(self, input_file, forward, verbose, fast):
+    def __init__(self, input_file, forward, verbose, fast, facts, query):
         self.forward = forward
         self.verbose = verbose
+        self.fact_asked = facts
+        self.query_asked = query
         self.facts = []
         self.queries = []
         self.parse(input_file)
+        if self.fact_asked != None:
+            try:
+                self.check_line_validity(self.fact_asked)
+                self.parse_facts_line(self.fact_asked)
+            except Exception as e:
+                raise(e)
+        if self.query_asked != None:
+            try:
+                self.check_line_validity(self.query_asked)
+                self.parse_queries_line(self.query_asked)
+            except Exception as e:
+                raise(e)
         if not fast:
             self.check_incoherences()
         for query in self.queries:
@@ -41,8 +64,6 @@ class Algo:
             raise(e)
             sys.stderr.write('Parsing error \n')
             exit
-        print(len(self.kb))
-
             
     def parse_clauses(self, content):
         jump = None
@@ -57,18 +78,24 @@ class Algo:
             else:
                 #TODO Deal with equivalence <=>
                 jump = True
-                splited = re.compile('<?=>').split(line)
-                if (len(splited) != 2):
+                splited = re.compile('(<?=>)').split(line)
+                if (len(splited) != 3):
                     raise Exception()
-                key = self.parse_rules(splited[1].split(COMMENT_CHAR)[0])
+                key = self.parse_rules(splited[2].split(COMMENT_CHAR)[0])
                 val = self.parse_rules(splited[0].split(COMMENT_CHAR)[0])
-                if key in self.kb:
-                    self.kb[key].append(val)
-                else:
-                    values = []
-                    values.append(val)
-                    self.kb[key] = values
+                self.add_to_kb(key, val)
+                if (splited[1] == "<=>"):
+                    self.add_to_kb(val, key)
+
         raise Exception()
+
+    def add_to_kb(self, key, val):
+        if key in self.kb:
+            self.kb[key].append(val)
+        else:
+            values = []
+            values.append(val)
+            self.kb[key] = values
 
     def parse_facts(self, content):
         jump = None
@@ -77,27 +104,45 @@ class Algo:
             if (line == '' and jump == None) or (line != '' and line[0] == COMMENT_CHAR):
                 continue
             elif line[0] == FACT_CHAR:
-                space = False
-                for char in line[1:]:
-                    if char == COMMENT_CHAR:
-                        break
-                    if char == ' ':
-                        space = True
-                        continue
-                    if char != COMMENT_CHAR and space == True and char != ' ':
-                        raise Exception()
-                    fact = Fact(self.facts, char, True)
-                    if fact in self.facts:
-                        sub_index = self.facts.index(fact)
-                        self.facts[sub_index].checked = True
-                        self.facts[sub_index].status = True
-                    else:
-                        fact.checked = True
-                        self.facts.append(fact)
+                self.check_line_validity(line[1:])
+                if self.fact_asked == None:
+                    self.parse_facts_line(line[1:])
                 return self.parse_queries(content[index + 1:])
             else:
+                return self.parse_queries(content[index:])
+
+    def check_line_validity(self, line, fact=True):
+        space = False
+        for char in line:
+            if char == COMMENT_CHAR:
+                break
+            if char == ' ':
+                space = True
+                continue
+            if char != COMMENT_CHAR and space == True and char != ' ':
                 raise Exception()
-        raise Exception()
+            if fact and char not in POSSIBLE_FACTS:
+                raise Exception(char + " is not a valid fact, fact should be an alphabetical uppercase character")
+
+    def parse_facts_line(self, line):
+        for char in line:
+            fact = Fact(self.facts, char, True, self.verbose, self.kb)
+            if fact in self.facts:
+                sub_index = self.facts.index(fact)
+                self.facts[sub_index].checked = True
+                self.facts[sub_index].status = True
+            else:
+                fact.checked = True
+                self.facts.append(fact)
+
+    def parse_queries_line(self, line):
+        for char in line:
+            fact = Fact(self.facts, char, False, self.verbose, self.kb)
+            if fact in self.facts:
+                self.queries.append(self.facts[self.facts.index(fact)])
+            else:
+                self.facts.append(fact)
+                self.queries.append(fact)
 
     def parse_queries(self, content):
         jump = None
@@ -106,26 +151,14 @@ class Algo:
             line = line.strip()
             if line == '' or line[0] == COMMENT_CHAR:
                 continue
-            elif line[0] == QUERY_CHAR:
-                space = False
-                for char in line[1:]:
-                    if char == COMMENT_CHAR:
-                        break
-                    if char == ' ':
-                        space = True
-                        continue
-                    if char != COMMENT_CHAR and space == True and char != ' ':
-                        raise Exception()
-                    fact = Fact(self.facts, char, False)
-                    if fact in self.facts:
-                        self.queries.append(self.facts[self.facts.index(fact)])
-                    else:
-                        self.facts.append(fact)
-                        self.queries.append(fact)
-                query = True
+            elif line[0] == QUERY_CHAR and not query:
+                self.check_line_validity(line[1:])
+                if self.query_asked == None:
+                    self.parse_queries_line(line[1:])
+                    query = True
             else:
                 raise Exception()
-        if not query:
+        if not query and self.query_asked == False:
             raise Exception()
 
     def parse_rules(self, term):
@@ -148,7 +181,7 @@ class Algo:
                     if term[i] ==')':
                         count -= 1
                         if count == 0:
-                            tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[opened + 1:i])) if not_op else self.parse_rules(term[opened + 1:i]))
+                            tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[opened + 1:i]), self.verbose, self.kb) if not_op else self.parse_rules(term[opened + 1:i]))
                             not_op = False
                             break
                     i+= 1
@@ -169,7 +202,7 @@ class Algo:
                 elif operator == None:
                     operator = char
                 else:
-                    result = OPERATORS_FUNC[operator](self.facts, tmp)
+                    result = OPERATORS_FUNC[operator](self.facts, tmp, self.verbose, self.kb)
                     tmp = []
                     tmp.append(result)
                     operator = char
@@ -183,17 +216,17 @@ class Algo:
                         if term[i] in OPERATORS and OPERATORS.index(term[i]) >= OPERATORS.index(operator) and parentheses == 0:
                             break
                         i += 1
-                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[start:i])) if not_op else self.parse_rules(term[start:i]))
+                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[start:i]), self.verbose, self.kb) if not_op else self.parse_rules(term[start:i]))
                     not_op = False
                     i -= 1
                     priority = False
                 else:
-                    fact = Fact(self.facts, char, False)
+                    fact = Fact(self.facts, char, False, self.verbose, self.kb)
                     if fact in self.facts:
                         fact = self.facts[self.facts.index(fact)]
                     else:
                         self.facts.append(fact)
-                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, fact) if not_op else fact)
+                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, fact, self.verbose, self.kb) if not_op else fact)
                     not_op = False
             else:
                 raise Exception()
@@ -205,21 +238,21 @@ class Algo:
                 raise Exception()
         else:
             if result and OPERATORS.index(operator) < OPERATORS.index(result.operator):
-                result.elements[-1] = (OPERATORS_FUNC[operator](self.facts, [result.elements[-1]] + tmp[1:]))
+                result.elements[-1] = (OPERATORS_FUNC[operator](self.facts, [result.elements[-1]] + tmp[1:], self.verbose, self.kb))
             else:
-                result = OPERATORS_FUNC[operator](self.facts, tmp)
+                result = OPERATORS_FUNC[operator](self.facts, tmp, self.verbose, self.kb)
         return result
 
     def check_incoherences(self):
         for fact in self.facts:
-            fact.solve(self.kb)
+            fact.solve()
 
     def solve(self, fact):
-        fact.solve(self.kb)
+        fact.solve()
         if (fact.undetermined):
             print(fact.element + " is Undetermined")
         else:
-            print(fact.element + " is " + str(fact.status))
+            print((OKGREEN if fact.status == True else FAIL) + fact.element + " is " + str(fact.status) + ENDC)
 
     def find_end_of_term(self, term, start, operator):
         i = start
