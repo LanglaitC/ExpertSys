@@ -1,4 +1,4 @@
-!A + B | D ^ C => !E + F + C + D
+((!A + B) | C) ^ D => !E + F + C + D
 
 =BF
 
