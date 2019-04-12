@@ -37,21 +37,23 @@ class And(Node):
                 return result
         return True
 
-    def set_status(self, result, element):
+    def set_status(self, element, result):
         conclusions = []
-        if result == False:
+        if result == False or result == None:
             return [None]
-        if element == self:
-            return [True]
         else:
             for sub_elmt in self.elements:
                 if not element in sub_elmt.get_facts():
                     continue
-                conclusions += sub_elmt.set_status(result, element)
+                conclusions += sub_elmt.set_status(element, result)
         self.check_for_exception(conclusions, element.element)
-        for index, each in enumerate(conclusions):
-            conclusions[index] = None if each == False else True
-        return conclusions
+        if result == True and False in conclusions:
+            return [False]
+        if result == False and True in conclusions:
+            return [True]
+        if result == True and None in conclusions:
+            return [True]
+        return [None]
 
     def __str__(self):
         result = "("
@@ -77,9 +79,9 @@ class Or(Node):
             return None
         return False
 
-    def set_status(self, result, element):
+    def set_status(self, element, result):
         conclusions = []
-        if result == True:
+        if result == True or result == None:
             return [None]
         if element == self:
             return [False]
@@ -87,10 +89,8 @@ class Or(Node):
             for sub_elmt in self.elements:
                 if not self in sub_elmt.get_facts():
                     continue
-                conclusions += sub_elmt.set_status(result, element)
+                conclusions += sub_elmt.set_status(element, result)
         self.check_for_exception(conclusions, element.element)
-        for index, each in enumerate(conclusions):
-            conclusions[index] = False if each == False else None
         return conclusions
 
 
@@ -126,8 +126,29 @@ class Xor(Node):
             result += element.__str__() + (" ^ " if index != (len(self.elements) - 1) else "")
         return result + ")"
 
-    def set_status(self, result, element):
+    def set_status(self, element, result):
+        results = []
+        our_results = []
+        for index, sub_element in enumerate(self.elements):
+            if element in sub_element.get_facts():
+                our_results += sub_element.set_status(element, result)
+            results += sub_element.set_status(element, result)
+        self.check_for_exception(our_results, element)
+        if True in results or False in results:
+            if result == True and True not in our_results:
+                return [False]
+            elif result == True and True not in results:
+                return [True]
         return [None]
+
+    #    if result == True and False in conclusions:
+    #         return [False]
+    #     if result == False and True in conclusions:
+    #         return [True]
+    #     if result == True and None in conclusions:
+    #         return [True]
+    #     return [None]
+
 
 class Not(Node):
     def __init__(self, facts, element, verbose, kb):
@@ -147,8 +168,12 @@ class Not(Node):
     def get_type(self):
         return self.element.get_type()
 
-    def set_status(self, result, element):
-        return self.element.set_status(not result, element)
+    def set_status(self, element, result):
+        result = self.element.set_status(element, not result)
+        for index, each in enumerate(result):
+            result[index] = not result if each == None else not each
+        return result
+
 
     def __str__(self):
         return "!" + self.element.__str__()
@@ -176,18 +201,21 @@ class Fact(Node):
         explanation += Colors.OKBLUE + "On tente de resoudre l'élément " + self.element
         to_check = []
         self.check_again = False
+        results = []
         if self.checking:
-            explanation += " mais il est deja en train d'etre verifié\n"
+            explanation += " mais il est deja en train d'etre verifié"
             self.status = None
-        elif self.initial:
-            explanation += ", il est present dans les faits initiaux" +  Colors.ENDC + "\n"
+        if self.initial:
+            self.status = True
+            results.append(True)
+            explanation += ", il est present dans les faits initiaux" +  Colors.ENDC
+        explanation += "\n"
         if self.checked:
             pass
-        else:
+        elif not self.checking:
             self.checking = True
-            explanation += Colors.ENDC + "\n\n"
             self.checked = True
-            results = []                
+            explanation += Colors.ENDC + "\n"
             if self in self.facts and self.status:
                 results.append(True)
             for key, value in self.kb.items():
@@ -207,8 +235,12 @@ class Fact(Node):
                 elif (type(key) != type(self) and self in key.get_facts()):
                     for rule in value:
                         status = rule.solve()
-                        explanation += "\tIl est present dans la règle " + str(key) + " qui est evalué à " + str(status)
-                        conclusion = key.set_status(status, self)
+                        explanation += "\tIl est present dans la règle " + str(key) + " qui "
+                        if status is None:
+                            explanation += "ne peut pas étre evalué"
+                        else:
+                            explanation += "est évalué à " + str(status)
+                        conclusion = key.set_status(self, status)
                         results += conclusion
                         if True in conclusion and False in conclusion:
                             raise Exception("Incoherence au niveau de l'élément " + self.element + " merci de verifier les regles indiquées")
@@ -217,29 +249,29 @@ class Fact(Node):
                         elif False in conclusion:
                             explanation += ", on peut en deduire que l'element s'evalue a False\n"
                         else:
+                            if status == None:
+                                self.check_again = True
                             self.undetermined = True
                             explanation += ", on ne peut rien en deduire\n"
             if (len(results)):
                 if True in results and False in results:
                     raise Exception("Incoherence au niveau de l'élément " + self.element + " merci de verifier les regles indiquées")
                 elif not True in results and not False in results:
-                    self.status = self.check_again
+                    self.status = None
                     self.checked = not self.check_again
                 else:
                     self.undetermined = False
-                    self.status = True in results
+                    self.status = True if True in results else False if False in results else None
             else:
                 self.status = False
         self.checking = False
+        
         if (self.undetermined):
-            explanation += "\nDonc l'element " + self.element + " ne peut pas etre determiné"
+            explanation += "\nL'element " + self.element + " ne peut pas etre determiné"
         elif (self.status == True or self.status == False):
             explanation += "\n" + (Colors.OKGREEN if self.status == True else Colors.FAIL) + self.element + " est " + ("vrai" if self.status else "faux") + Colors.ENDC
         if (self.verbose and to_print):
             print(explanation + "\n")
-        for rule in to_check:
-            rule.solve()
-        # print(self.element, self.status)
         return self.status
 
     def get_facts(self):
@@ -247,8 +279,8 @@ class Fact(Node):
         val.append(self)
         return val
 
-    def set_status(self, result, element):
-        return [result]
+    def set_status(self, element, result):
+        return [self.solve()]
 
     def __str__(self):
         return self.element

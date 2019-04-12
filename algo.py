@@ -41,14 +41,13 @@ class Algo:
             for query in self.queries:
                 self.solve(query)
         except Exception as e:
-            raise(e)
             length = len(e.__str__())
             sys.stderr.write(Colors.FAIL + "\n")
             for i in range(math.ceil(length / 2) - 18):
                 sys.stderr.write('-')
-            sys.stderr.write(" /!\\ WARNING: MISTAKES HAS BEEN MADE /!\\ ")
+            sys.stderr.write(" /!\\ WARNING: MISTAKES HAVE BEEN MADE /!\\ ")
             sys.stderr.write(Colors.FAIL)
-            for i in range(math.ceil(length / 2) - 18):
+            for i in range(math.ceil(length / 2) - 17):
                 sys.stderr.write('-')
             sys.stderr.write('\n')
             sys.stderr.write("\n  " + Colors.ENDC + e.__str__() + Colors.FAIL + "\n\n")
@@ -172,7 +171,7 @@ class Algo:
     def parse_rules(self, term):
         result = None
         tmp = []
-        not_op = False
+        not_op = 0
         operator = None
         priority = False
         last_op = 0
@@ -183,6 +182,7 @@ class Algo:
             if char.isspace():
                 pass
             elif char == '(':
+                last_fact = i
                 opened = i
                 count = 0
                 while i < len(term):
@@ -191,8 +191,8 @@ class Algo:
                     if term[i] ==')':
                         count -= 1
                         if count == 0:
-                            tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[opened + 1:i]), self.verbose, self.kb) if not_op else self.parse_rules(term[opened + 1:i]))
-                            not_op = False
+                            tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[opened + 1:i]), self.verbose, self.kb) if not_op % 2 else self.parse_rules(term[opened + 1:i]))
+                            not_op = 0
                             break
                     i+= 1
                 if count != 0:
@@ -208,8 +208,8 @@ class Algo:
                 priority = j < len(term) and term[j] in OPERATORS and OPERATORS.index(term[j]) < OPERATORS.index(char)
                 if char == operator:
                     pass
-                elif char == NOT_OPERATOR:
-                    not_op = True
+                elif char == NOT_OPERATOR:                  
+                    not_op += 1
                 elif operator == None:
                     operator = char
                 else:
@@ -228,8 +228,8 @@ class Algo:
                         if term[i] in OPERATORS and OPERATORS.index(term[i]) >= OPERATORS.index(operator) and parentheses == 0:
                             break
                         i += 1
-                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[start:i]), self.verbose, self.kb) if not_op else self.parse_rules(term[start:i]))
-                    not_op = False
+                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, self.parse_rules(term[start:i]), self.verbose, self.kb) if not_op % 2 else self.parse_rules(term[start:i]))
+                    not_op = 0
                     i -= 1
                     priority = False
                 else:
@@ -238,8 +238,8 @@ class Algo:
                         fact = self.facts[self.facts.index(fact)]
                     else:
                         self.facts.append(fact)
-                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, fact, self.verbose, self.kb) if not_op else fact)
-                    not_op = False
+                    tmp.append(OPERATORS_FUNC[NOT_OPERATOR](self.facts, fact, self.verbose, self.kb) if not_op % 2 else fact)
+                    not_op = 0
             else:
                 raise Exception("Charactère invalide au sein de l'une des regles: " + char + ", " + term)
             i += 1
