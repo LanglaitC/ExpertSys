@@ -149,7 +149,7 @@ class Not(Node):
     def solve(self):
         result = self.element.solve()
         if result is None:
-            return None
+            return True
         return not result
 
     def get_facts(self):
