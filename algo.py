@@ -41,6 +41,7 @@ class Algo:
             for query in self.queries:
                 self.solve(query)
         except Exception as e:
+            raise(e)
             length = len(e.__str__())
             sys.stderr.write(Colors.FAIL + "\n")
             for i in range(math.ceil(length / 2) - 18):
@@ -134,7 +135,9 @@ class Algo:
                 sub_index = self.facts.index(fact)
                 self.facts[sub_index].checked = self.fast
                 self.facts[sub_index].status = True
+                self.facts[sub_index].initial = True
             else:
+                fact.initial = True
                 fact.checked = self.fast
                 self.facts.append(fact)
 
