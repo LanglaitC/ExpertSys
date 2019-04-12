@@ -1,0 +1,7 @@
+# Faster
+
+A + B + D => C
+
+=ABD
+
+?C

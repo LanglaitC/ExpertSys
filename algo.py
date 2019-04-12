@@ -20,9 +20,8 @@ OPERATORS_FUNC = {
 POSSIBLE_FACTS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class Algo:
-    def __init__(self, input_file, forward, verbose, fast, facts, query):
+    def __init__(self, input_file, verbose, fast, facts, query):
         try:
-            self.forward = forward
             self.verbose = verbose
             self.fast = fast
             self.fact_asked = facts
@@ -75,18 +74,19 @@ class Algo:
             if (line == '' and jump == True):
                 return self.parse_facts(content[index:])
             elif line[0] == FACT_CHAR:
+                if not len(self.kb):
+                    raise Exception("Aucune regle defini")
                 return self.parse_facts(content[index:])
             else:
                 jump = True
                 splited = re.compile('(<?=>)').split(line)
                 if (len(splited) != 3):
-                    raise Exception()
+                    raise Exception("Regle invalide: " + line)
                 key = self.parse_rules(splited[2].split(COMMENT_CHAR)[0])
                 val = self.parse_rules(splited[0].split(COMMENT_CHAR)[0])
                 self.add_to_kb(key, val)
                 if (splited[1] == "<=>"):
                     self.add_to_kb(val, key)
-
         raise Exception()
 
     def add_to_kb(self, key, val):
@@ -109,6 +109,8 @@ class Algo:
                     self.parse_facts_line(line[1:])
                 return self.parse_queries(content[index + 1:])
             else:
+                if self.fact_asked == None:
+                    raise Exception("Le caractere introduisant les faits n'a pas ete rencontré et aucun fait n'a été indique en parametres")
                 return self.parse_queries(content[index:])
 
     def check_line_validity(self, line, fact=True):
@@ -122,7 +124,7 @@ class Algo:
             if char != COMMENT_CHAR and space == True and char != ' ':
                 raise Exception("Charactere invalide" + char)
             if fact and char not in POSSIBLE_FACTS:
-                raise Exception(char + " n'est pas un charactere valide, les fais devraient etre des lettres de l'alphabet majuscules")
+                raise Exception(char + " n'est pas un charactere valide, les faits devraient etre des lettres de l'alphabet majuscules")
 
     def parse_facts_line(self, line):
         for char in line:

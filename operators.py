@@ -160,8 +160,9 @@ class Not(Node):
 
     def set_status(self, element, result):
         result = self.element.set_status(element, not result)
+        is_simple = self.element.__class__.__name__ == 'Not' or self.element.__class__.__name__ == 'Fact'
         for index, each in enumerate(result):
-            result[index] = not result if each == None else not each
+            result[index] = not result if each == None and is_simple else None if each == None else not each
         return result
 
     def __str__(self):

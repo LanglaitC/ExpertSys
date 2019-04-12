@@ -1,0 +1,10 @@
+# Stronger
+
+D + E => C
+A + B => E
+F + G => D
+
+=ABFG
+
+?C
+
