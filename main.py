@@ -13,5 +13,5 @@ parser.add_argument("-q", "--query", help="The facts to solve using the knowledg
 args = parser.parse_args()
 if not os.path.isfile(args.file):
     sys.stderr.write('Wrong input \n')
-    exit
+    sys.exit(1)
 Algo(args.file, args.forward, args.verbose, args.quick, args.facts, args.query)

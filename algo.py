@@ -51,7 +51,7 @@ class Algo:
                 sys.stderr.write('-')
             sys.stderr.write('\n')
             sys.stderr.write("\n  " + Colors.ENDC + e.__str__() + Colors.FAIL + "\n\n")
-            for i in range(length + 5):
+            for i in range(length + 8):
                 sys.stderr.write('-')
             sys.stderr.write("\n" + Colors.ENDC)
 
@@ -63,7 +63,7 @@ class Algo:
             self.parse_clauses(content)
         except Exception as e:
             raise(e)
-            sys.stderr.write('Parsing error \n')
+            sys.stderr.write('Parsing error\n')
             exit
             
     def parse_clauses(self, content):
@@ -77,7 +77,6 @@ class Algo:
             elif line[0] == FACT_CHAR:
                 return self.parse_facts(content[index:])
             else:
-                #TODO Deal with equivalence <=>
                 jump = True
                 splited = re.compile('(<?=>)').split(line)
                 if (len(splited) != 3):
@@ -121,7 +120,7 @@ class Algo:
                 space = True
                 continue
             if char != COMMENT_CHAR and space == True and char != ' ':
-                raise Exception()
+                raise Exception("Charactere invalide" + char)
             if fact and char not in POSSIBLE_FACTS:
                 raise Exception(char + " n'est pas un charactere valide, les fais devraient etre des lettres de l'alphabet majuscules")
 
@@ -129,7 +128,7 @@ class Algo:
         for char in line:
             if char not in POSSIBLE_FACTS:
                 break
-            fact = Fact(self.facts, char, True, self.verbose, self.kb)
+            fact = Fact(self.facts, char, True, self.verbose, self.kb, self.queries)
             if fact in self.facts:
                 sub_index = self.facts.index(fact)
                 self.facts[sub_index].checked = self.fast
@@ -144,7 +143,7 @@ class Algo:
         for char in line:
             if char not in POSSIBLE_FACTS:
                 break
-            fact = Fact(self.facts, char, False, self.verbose, self.kb)
+            fact = Fact(self.facts, char, False, self.verbose, self.kb, self.queries)
             if fact in self.facts:
                 self.queries.append(self.facts[self.facts.index(fact)])
             else:
@@ -233,7 +232,7 @@ class Algo:
                     i -= 1
                     priority = False
                 else:
-                    fact = Fact(self.facts, char, False, self.verbose, self.kb)
+                    fact = Fact(self.facts, char, False, self.verbose, self.kb, self.queries)
                     if fact in self.facts:
                         fact = self.facts[self.facts.index(fact)]
                     else:
@@ -249,7 +248,7 @@ class Algo:
             if len(tmp):
                 result = tmp[0]
             else:
-                raise Exception()
+                raise Exception("Erreur de syntaxe")
         else:
             if result and OPERATORS.index(operator) < OPERATORS.index(result.operator):
                 result.elements[-1] = (OPERATORS_FUNC[operator](self.facts, [result.elements[-1]] + tmp[1:], self.verbose, self.kb))
@@ -259,12 +258,12 @@ class Algo:
 
     def check_incoherences(self):
         for fact in self.facts:
-            fact.solve(fact in self.queries)
+            fact.solve()
 
     def solve(self, fact):
-        fact.solve(self.fast)
+        fact.solve()
         if (not self.verbose):
-            if (fact.undetermined):
+            if (fact.undetermined or fact.status == None):
                 print(fact.element + " is Undetermined")
             else:
                 print((Colors.OKGREEN if fact.status == True else Colors.FAIL) + fact.element + " is " + str(fact.status) + Colors.ENDC)
